@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  */
 public class Classifier {
 
-    //private int pixelSize = 48;
+    private static int pixelSize = 28;
     private static String filePath;
     private static File originalFile;
     private static File trainFile;
@@ -40,12 +40,12 @@ public class Classifier {
     private static Map<String, ClassRecords> labelDoc;
     private static List<String> correctRes = new ArrayList<>();
     private static List<String> predictRes = new ArrayList<>();
-    private static boolean check = true;
     private static int lineCnt = 0;
     private static List<String> trainingData = new ArrayList<>();
     private static List<String> testingData = new ArrayList<>();
     private static boolean Last = true;
-    private static int positionRange = 6;
+    private static int positionRange = 1;
+    private static int greyvalueRange = 0;
 
     private static void split(FileReader input, FileWriter train, FileWriter test, double testRatio) throws IOException {
         BufferedReader reader = new BufferedReader(input);
@@ -94,21 +94,6 @@ public class Classifier {
         for (; start < end; start++) {
             if (!"".equals(digits[start])) {
                 int d = Integer.parseInt(digits[start]);
-
-                if (d > 0) {
-                    d = 1;
-                }
-//                if (d == 0) {
-//                    d = 0;
-//                } else if (d <= 55) {
-//                    d = 1;
-//                } else if (d <= 110) {
-//                    d = 2;
-//                } else if (d <= 165) {
-//                    d = 3;
-//                } else {
-//                    d = 4;
-//                }
                 sd.addFeature(String.valueOf(d));
             }
         }
@@ -173,7 +158,6 @@ public class Classifier {
                         predictClass = trainDoc;
                         bestScore = score;
                     }
-                    //System.out.println("train class=" + trainDoc.getClassID() + ", score=" + score);
                 }
 
 
@@ -200,38 +184,47 @@ public class Classifier {
     }
 
     public static double testMethod(int index, List<String> feature, Map<String, Integer> featureCounter, ClassRecords trainDoc) {
-        //int valueRange = 100;
         double cond = 0;
-        String[] possibleKeys = new String[positionRange];    //10
-        for (int i = 0; i < positionRange; i++) {   //i from index-5 to index + 5
-            int simindex = index - positionRange / 2 + i;
-            if (simindex >= 0 && simindex < feature.size()) {
-                possibleKeys[i] = String.valueOf(simindex) + "," + feature.get(simindex);
-                if (featureCounter.containsKey(possibleKeys[i])) {
-                    cond += (double) featureCounter.get(possibleKeys[i]) / ((double) trainDoc.getRecordsCount());
+
+        int k = positionRange;
+        int[] aroundIndex = new int[k * 9];
+        for (int i = 0; i < k; i++) {
+            aroundIndex[(k - 1) * 9 + 0] = index;//center
+            aroundIndex[(k - 1) * 9 + 1] = index - 1;//left
+            aroundIndex[(k - 1) * 9 + 2] = index + 1;//right;
+            aroundIndex[(k - 1) * 9 + 3] = index - pixelSize * k;//up
+            aroundIndex[(k - 1) * 9 + 4] = index + pixelSize * k;//down
+            aroundIndex[(k - 1) * 9 + 5] = index - (pixelSize * k + 1);//up left
+            aroundIndex[(k - 1) * 9 + 6] = index - (pixelSize * k - 1);//up right
+            aroundIndex[(k - 1) * 9 + 7] = index + (pixelSize * k - 1);//down left
+            aroundIndex[(k - 1) * 9 + 8] = index + (pixelSize * k + 1);//down right
+        }
+        for (int i = 0; i < k * 9; i++) {
+            if (aroundIndex[i] >= 0 && aroundIndex[i] < feature.size()) {
+                int original = Integer.parseInt(feature.get(aroundIndex[i]));
+                for (int j = -greyvalueRange; j <= greyvalueRange; j++) {
+                    String key = String.valueOf(aroundIndex[i]) + "," + String.valueOf(original + j);
+                    if (featureCounter.containsKey(key)) {
+                        double tmp = (double) featureCounter.get(key) / ((double) trainDoc.getRecordsCount());
+                        cond += tmp;
+                    }
                 }
             }
         }
-//        for (int i = 1; i <= valueRange; i++) {
-//            String key = String.valueOf(index) + "," + feature.get(index) + i;
-//            if (featureCounter.containsKey(key)) {
-//                cond += (double) featureCounter.get(key) / ((double) trainDoc.getRecordsCount());
-//            }
-//        }
+
         return cond;
     }
 
     public static void main(String[] args) throws IOException {
         filePath = "/Users/Yiting/Google Drive/00_Study/CS491ML/project/NB/";
-        //filePath = "C:\\Users\\yli229\\Documents\\ML491\\NB";
-        originalFile = new File(filePath, "minst");
-        //originalFile = new File(filePath, "digits.ssv");
+        //originalFile = new File(filePath, "minst");
+        originalFile = new File(filePath, "digits.ssv");
         System.out.println("Input file: " + originalFile.getName());
         if (originalFile.getName().equals("minst")) {
             Last = false;
-            positionRange = 1;
+            greyvalueRange = 3;
         } else {
-            positionRange = 1;
+            greyvalueRange = 0;
         }
         trainFile = new File(filePath, "training.txt");
         testFile = new File(filePath, "test.txt");
@@ -240,15 +233,15 @@ public class Classifier {
         for (int i = 0; i < 10; i++) {
             classNames.add(String.valueOf(i));
         }
-        try {
-            FileReader input = new FileReader(originalFile);
-            FileWriter train = new FileWriter(trainFile);
-            FileWriter test = new FileWriter(testFile);
-            split(input, train, test, 0.1);
-            System.out.println("split done");
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
-        }
+//        try {
+//            FileReader input = new FileReader(originalFile);
+//            FileWriter train = new FileWriter(trainFile);
+//            FileWriter test = new FileWriter(testFile);
+//            split(input, train, test, 0.1);
+//            System.out.println("split done");
+//        } catch (FileNotFoundException ex) {
+//            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+//        }
         try {
             FileReader trainInput = new FileReader(trainFile);
             FileReader testInput = new FileReader(testFile);
