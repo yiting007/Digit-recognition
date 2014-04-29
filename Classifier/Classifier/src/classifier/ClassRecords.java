@@ -56,15 +56,15 @@ public class ClassRecords {
     public void constructFeatures() {
         features = new Features(this);
         features.constructFeatures();   
-        features.constructDistance();
+        //features.constructDistance();
     }
     
-    public Map<String, Integer> getFeatureCounter(){
+    public Map<Integer, Map<String, Double>> getFeatureCounter(){
         return features.getFeatureMap();
     }
     
-    public Map<Integer, Double> getFeatureDistance(){
-        return features.getFeatureDistance();
-    }
+//    public Map<Integer, Double> getFeatureDistance(){
+//        return features.getFeatureDistance();
+//    }
     
 }
